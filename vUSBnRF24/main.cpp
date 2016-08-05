@@ -134,9 +134,15 @@ usbMsgLen_t usbFunctionSetup(uchar data[8])
 		{
 			staticReplyBuffer[0] = 0;
 			
+			if(Radio::lastAck == Ack_Received)
+			{
+				staticReplyBuffer[0] = 1<<7;
+				Radio::lastAck = Ack_Empty;
+			}
+			
 			if(Radio::rxBufferState == BufferState_Ready)
 			{
-				staticReplyBuffer[0] = (1 << 6) | Radio::rxBuffer[1];	//Length
+				staticReplyBuffer[0] |= (1 << 6) | Radio::rxBuffer[1];	//Length
 			}
 			
 			usbMsgPtr = staticReplyBuffer;
