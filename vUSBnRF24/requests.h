@@ -1,0 +1,14 @@
+#ifndef REQUESTS_H_
+#define REQUESTS_H_
+
+#define REQUEST_CONFIGURE	0x01
+#define REQUEST_RESET		0x02
+#define REQUEST_GET_STATUS	0x03
+
+#define REQUEST_SEND		0x10
+
+#define REQUEST_RECEIVE		0x20
+
+
+
+#endif
