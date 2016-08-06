@@ -50,6 +50,11 @@ namespace Radio
 		rxBufferState = BufferState_Ready;
 		
 		rxDataAvailable = getStatus().rRX_P_NO != 0x07;
+		
+		if(rxDataAvailable)
+		{
+			rxBuffer[0] |= _BV(3);
+		}
 	}
 	
 	uint16_t pollRXcounter = 0;
@@ -89,7 +94,6 @@ namespace Radio
 						if(!(fifo_status & _BV(4)))	//TX FIFO not empty
 							goto skip;
 					}
-					
 				}
 				
 				GPIO::SS::low();
