@@ -197,6 +197,8 @@ namespace Radio
 		SPI::transfer(FLUSH_RX);
 		
 		GPIO::SS::high();
+		
+		rxDataAvailable = 0;
 	}
 	
 	void init()
