@@ -32,6 +32,12 @@ namespace Radio
 		rxBuffer[0] = status.rRX_P_NO;
 		rxBuffer[1] = getPayloadWidth();
 		
+		if(rxBuffer[1] == 0 || rxBuffer[1] > 32)	//as per datasheet
+		{
+			flushRX();
+			return;
+		}
+		
 		GPIO::SS::low();
 		
 		SPI::transfer(R_RX_PAYLOAD);
