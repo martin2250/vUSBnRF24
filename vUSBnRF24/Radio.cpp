@@ -25,8 +25,6 @@ namespace Radio
 	BufferState txBufferState = BufferState_Empty;
 	BufferState rxBufferState = BufferState_Empty;
 	
-	Ack lastAck = Ack_Empty;
-	
 	void readRX(RadioStatus status)
 	{
 		memset(&rxBuffer, 0, sizeof(rxBuffer));
@@ -58,23 +56,35 @@ namespace Radio
 			configState = BufferState_Empty;
 		}
 		
-		if(txBufferState == BufferState_Ready && radioState == RadioState_RX)
+		if(txBufferState == BufferState_Ready)
 		{
 			struct RadioStatus status = getStatus();
 			
 			if(!status.rTX_FULL)
-			{
-				GPIO::CE::low();
-				
-				if(memcmp(txBuffer + 1, lastTXaddress, 5))		//memcmp returns 0 on match
+			{				
+				if(radioState == RadioState_RX)
 				{
-					memcpy(lastTXaddress, txBuffer + 1, 5);
+					GPIO::CE::low();
+					setReg(CONFIG, CONFIG_REG & ~_BV(PRIM_RX));
 					
-					setReg5(TX_ADDR, lastTXaddress);
-					setReg5(RX_ADDR_P0, lastTXaddress);
+					if(memcmp(txBuffer + 1, lastTXaddress, 5))		//memcmp returns 0 on match
+					{
+						memcpy(lastTXaddress, txBuffer + 1, 5);
+						
+						setReg5(TX_ADDR, lastTXaddress);
+						setReg5(RX_ADDR_P0, lastTXaddress);
+					}
 				}
-				
-				setReg(CONFIG, CONFIG_REG & ~_BV(PRIM_RX));
+				else
+				{
+					if(memcmp(txBuffer + 1, lastTXaddress, 5))	//don't change tx addr while sending
+					{
+						uint8_t fifo_status = getReg(0x17);
+						if(!(fifo_status & _BV(4)))	//TX FIFO not empty
+							goto skip;
+					}
+					
+				}
 				
 				GPIO::SS::low();
 				
@@ -88,46 +98,25 @@ namespace Radio
 				
 				GPIO::SS::high();
 				GPIO::CE::high();
-				
-				lastAck = Ack_Empty;
+			
+				txBufferState = BufferState_Empty;
 				radioState = RadioState_TX;
 			}
 		}
-		
+		skip:
 		if(!GPIO::IRQ::get() || pollRXcounter-- == 0)
 		{
 			struct RadioStatus status = getStatus();
 			
 			if(status.rMAX_RT)
 			{
-				txBufferState = BufferState_Empty;
-				lastAck = Ack_NAK;
-				
-				GPIO::CE::low();
-				
-				setReg(CONFIG, CONFIG_REG);
-				
-				GPIO::CE::high();
-				
 				setReg(STATUS, _BV(MAX_RT));
-				
-				radioState = RadioState_RX;
+				flushTX();
 			}
 			
 			if(status.rTX_DS)
 			{
-				txBufferState = BufferState_Empty;
-				lastAck = Ack_Received;
-
-				GPIO::CE::low();
-
-				setReg(CONFIG, CONFIG_REG);
-
-				GPIO::CE::high();
-
 				setReg(STATUS, _BV(TX_DS));
-
-				radioState = RadioState_RX;
 			}
 			
 			if(status.rRX_DR)
@@ -140,6 +129,22 @@ namespace Radio
 			if(status.rRX_P_NO != 0x07 )
 			{
 				rxDataAvailable = 1;
+			}
+			
+			if(radioState == RadioState_TX)
+			{
+				uint8_t fifo_status = getReg(0x17);
+				
+				if(fifo_status & _BV(4))	//TX FIFO empty
+				{
+					GPIO::CE::low();
+					
+					setReg(CONFIG, CONFIG_REG);
+					
+					GPIO::CE::high();
+					
+					radioState = RadioState_RX;
+				}
 			}
 		}
 		
@@ -162,8 +167,6 @@ namespace Radio
 		configState = BufferState_Empty;
 		txBufferState = BufferState_Empty;
 		rxBufferState = BufferState_Empty;
-		
-		lastAck = Ack_Empty;
 		
 		rxDataAvailable = 0;
 
@@ -296,9 +299,9 @@ namespace Radio
 	
 		
 		setReg(SETUP_AW, 3);
-		setReg(SETUP_RETR, config[11] | (1 << 4));
+		setReg(SETUP_RETR, (config[11] & 0x0F) | (1 << 4));
 		setReg(RF_CH, config[10] & 0x7F);
-		setReg(RF_SETUP, convert_br_reg[config[11] >> 6] | (config[11] >> 3));
+		setReg(RF_SETUP, convert_br_reg[config[11] >> 6] | ((config[11] >> 3) & 0x06));
 							// Bitrate						RF Power
 		
 		uint8_t rxAddress[5];

@@ -18,13 +18,6 @@ namespace Radio
 		RadioState_TX
 	};
 	
-	enum Ack
-	{
-		Ack_Empty,
-		Ack_Received,
-		Ack_NAK
-	};
-	
 	struct Pipe
 	{
 		unsigned int payloadwidth : 6;
@@ -45,7 +38,6 @@ namespace Radio
 		unsigned int : 1;		
 	};
 	
-	
 	extern uint8_t config[16];
 	extern uint8_t txBuffer[38];
 	extern uint8_t rxBuffer[34];
@@ -54,8 +46,6 @@ namespace Radio
 	extern BufferState txBufferState;
 	extern BufferState rxBufferState;
 	
-	extern Ack lastAck;
-
 	void init();
 	void reset();
 	void flushTX();

@@ -85,7 +85,7 @@ usbMsgLen_t usbFunctionSetup(uchar data[8])
 {
 	usbRequest_t *rq = (usbRequest_t *)data;
 	
-	if(writeCount > 0)
+	if(*writeBufferState == BufferState_Receiving)
 	*writeBufferState = BufferState_Empty;
 	
 	if(readCount > 0)
@@ -133,12 +133,6 @@ usbMsgLen_t usbFunctionSetup(uchar data[8])
 		case REQUEST_GET_STATUS:
 		{
 			staticReplyBuffer[0] = 0;
-			
-			if(Radio::lastAck == Ack_Received)
-			{
-				staticReplyBuffer[0] = 1<<7;
-				Radio::lastAck = Ack_Empty;
-			}
 			
 			if(Radio::rxBufferState == BufferState_Ready)
 			{
