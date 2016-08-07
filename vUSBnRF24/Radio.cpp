@@ -10,7 +10,7 @@
 
 namespace Radio
 {
-	const uint8_t convert_br_reg[] = {0x10, 0x00,0x08};
+	const uint8_t convert_br_reg[] = {0x20, 0x00,0x08};
 	
 	uint8_t lastTXaddress[5];
 	uint8_t rxDataAvailable = 0;
